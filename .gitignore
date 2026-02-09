@@ -1,0 +1,18 @@
+# MATLAB
+*.asv
+*.m~
+*.autosave
+
+# Simulink code generation / cache (regeneratable)
+LocalizationRSSandsub/slprj/
+
+# Evaluation outputs (timestamped; reproducible by re-running with same config/seed)
+results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.code-workspace
