@@ -5,13 +5,14 @@ function cfg = load_config(filepath, mergeWithDefaults)
 % cfg = load_config(filepath, mergeWithDefaults)
 %
 % Inputs:
-%   filepath         - Path to .mat file containing variable 'cfg' or 'config'
-%   mergeWithDefaults - (optional) If true, merge loaded struct with
-%                       localization_config() so missing fields use defaults.
+%   filepath          - Path to .mat file containing variable 'cfg' or 'config'
+%   mergeWithDefaults - (optional) If true, fields missing from the loaded
+%                       struct (including nested ones such as channel.ble.n)
+%                       are filled from localization_config().
 %                       Default: true
 %
 % Output:
-%   cfg - Config struct suitable for run_experiment(cfg)
+%   cfg - Validated config struct suitable for run_experiment(cfg)
 %
 % To create a .mat config: save_config(localization_config(), 'my_exp.mat');
 % Then rerun with: run_experiment(load_config('my_exp.mat'));
@@ -26,16 +27,25 @@ if isfield(S, 'cfg')
 elseif isfield(S, 'config')
     cfg = S.config;
 else
-    error('load_config:mat must contain variable ''cfg'' or ''config''.');
+    error('load_config:format', 'Config .mat must contain variable ''cfg'' or ''config''.');
 end
 
 if mergeWithDefaults
-    defaultCfg = localization_config();
-    fn = fieldnames(defaultCfg);
-    for k = 1:numel(fn)
-        if ~isfield(cfg, fn{k})
-            cfg.(fn{k}) = defaultCfg.(fn{k});
-        end
+    cfg = merge_structs(localization_config(), cfg);
+end
+cfg = validate_config(cfg);
+end
+
+function out = merge_structs(defaults, override)
+% Recursively overlay "override" on "defaults" (override wins).
+out = defaults;
+fn = fieldnames(override);
+for k = 1:numel(fn)
+    f = fn{k};
+    if isfield(defaults, f) && isstruct(defaults.(f)) && isstruct(override.(f))
+        out.(f) = merge_structs(defaults.(f), override.(f));
+    else
+        out.(f) = override.(f);
     end
 end
 end

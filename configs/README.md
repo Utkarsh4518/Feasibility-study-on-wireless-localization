@@ -1,55 +1,62 @@
 # Configuration
 
-All experiment parameters are controlled by a **single configuration structure**. Rerun experiments by changing only the config (edit `localization_config.m` or load a saved `.mat` file).
+All experiment parameters live in **one config struct**, `localization_config()`. Change experiments by editing that file or by loading a saved `.mat`. `validate_config` rejects malformed configs early (`localization:config` errors). The same field names are used by `python/locref.py`, and every report writes `cfg.json`, so a run can be reloaded in Python.
 
 ---
 
-## Config structure (localization_config.m)
+## Fields
 
 | Section | Fields | Description |
-|--------|--------|-------------|
+|---|---|---|
 | **Simulation** | `modelName`, `simulinkDir` | Simulink model and folder |
-| | `random_seed` | Fixed seed for RNG (e.g. 42); [] = no fix. Ensures reproducible runs. |
-| | `save_evaluation_results` | If true, run_evaluation_report saves to results/&lt;timestamp&gt;/ after each run. |
-| **Anchor geometry** | `anchor_pos`, `anchor_x`, `anchor_y` | Anchor positions [m]; must match Simulink |
-| **Signal selection** | `enable_rss`, `enable_aoa`, `enable_rtt` | Turn RSS / AoA / RTT on or off |
-| | `rss_names`, `aoa_names`, `rtt_names`, `rx_signal_name` | Log names in Simulink `logsout` |
-| **Noise statistics** | `noise_sigma_rss_dB`, `noise_aoa_std_deg`, `noise_rtt_std_s` | RSS [dB], AoA [deg], RTT [s] std |
-| **Path loss** | `path_loss_tx_dBm`, `path_loss_ref_dB`, `path_loss_exponent`, `path_loss_ref_dist_m` | Channel model for signal_models and CRLB |
-| **Filter parameters** | `smooth_win` | Moving-average window for RSS |
-| | `kf_dt_default`, `kf_sigma_a`, `kf_measurement_var_floor`, `kf_P0_diag`, `kf_chi2_gate`, `kf_fusion_alpha` | Kalman filter |
-| **Fusion** | `fusion_weight_kf` | Weight on RSS-KF when fusing with AoA (0–1) |
-| **Physical** | `speed_of_light` | [m/s] for RTT → distance |
+| | `random_seed` | Seed (e.g. 42); `[]` = unseeded. Drives `simulate_scenario` exactly; for Simulink see `check_reproducibility` |
+| | `save_evaluation_results` | Write `results/<timestamp>/` after each run |
+| **Anchors** | `anchor_layout`, `anchor_pos` | Kx2 positions [m]. Default `'model'` = the model's `(0,0), (0,5), (5,0)`. Other layouts: `anchor_layouts()`. A Simulink run **re-reads the anchors from the model** (`sync_anchors_with_model`) and warns if `anchor_pos` differs |
+| **Signals** | `enable_rss`, `enable_aoa`, `enable_rtt` | Turn modalities on/off |
+| | `use_ble`, `use_ble_aoa` | Include BLE links in RSS/RTT; BLE AoA (off: Simulink only logs WiFi AoA) |
+| | `rss_names`, `aoa_names`, `rtt_names`, `rx_signal_name` | Logged signal names in the Simulink model |
+| **Channel** | `channel.wifi`, `channel.ble` | Per technology: `Ptx_dBm`, `PL0_dB`, `n`, `d0_m` (log‑distance path loss) and noise stds `rss_std_dB`, `aoa_std_deg`, `rtt_std_s`. Defaults are copied from the Simulink charts (WiFi n = 2.2, BLE n = 3.0) |
+| | `noise_scale.rss/.aoa/.rtt` | Multipliers on those stds (1 = nominal); what sweeps vary |
+| **Trajectory** | `trajectory.waypoints`, `.speed_mps`, `.dt` | Path for the pure‑MATLAB simulator (Simulink uses its own agent path) |
+| **Smoothing** | `smooth_win`, `smooth_causal` | Moving‑average window; trailing window = online‑usable |
+| **Kalman** | `kf_input` | `'raw'` (default) or `'smoothed'` RSS position fed to the filter |
+| | `kf_sigma_a`, `kf_R_floor_m2`, `kf_R_fixed_m2`, `kf_chi2_gate`, `kf_max_rejects`, `kf_P0_diag`, `kf_dt_default` | Process noise, measurement noise floor / fallback, gate, re‑init rule, initial covariance |
+| **EKF** | `ekf_sigma_a`, `ekf_gate`, `ekf_P0_diag` | Joint range + bearing filter |
+| **Fusion** | `fusion_method` | `'inverse_cov'` (default) or `'fixed'` |
+| | `fusion_weight_kf` | Weight on RSS‑KF for `'fixed'` (rest on AoA) |
+| **Evaluation** | `target_error_m` | Accuracy target used in plots and metrics |
+| **Physical** | `speed_of_light` | [m/s] |
+
+Removed since the earlier version: `anchor_x`, `anchor_y` (use `anchor_pos`), `noise_sigma_rss_dB`, `noise_aoa_std_deg`, `noise_rtt_std_s`, `path_loss_*` (now under `channel`), `kf_measurement_var_floor` (→ `kf_R_floor_m2`), `kf_fusion_alpha` (unused).
 
 ---
 
-## Rerun by changing only config
+## Rerun by changing only the config
 
-### Option 1: Edit and run
+```matlab
+cfg = localization_config();
+cfg.enable_rtt = false;
+cfg.noise_scale.aoa = 2;                 % AoA twice as noisy
+cfg = set_anchor_layout(cfg, 'four_corners');   % simulator only
+run_simulated_experiment(cfg);
+```
 
-1. Edit `configs/localization_config.m` (e.g. set `enable_rtt = false`, or change `noise_aoa_std_deg`).
-2. From repo root: `run_experiment()` (uses `localization_config()`).
+Save and reload (nested fields are merged with the defaults, so older `.mat` files stay valid):
 
-### Option 2: Save and load .mat
+```matlab
+save_config(cfg, 'configs/exp_no_rtt.mat');
+run_experiment(load_config('configs/exp_no_rtt.mat'));
+```
 
-1. Create a config (e.g. modify default and save):
-   ```matlab
-   cfg = localization_config();
-   cfg.enable_rtt = false;
-   cfg.noise_aoa_std_deg = 5;
-   save_config(cfg, 'configs/exp_aoa_only.mat');
-   ```
-2. Rerun with that config:
-   ```matlab
-   run_experiment(load_config('configs/exp_aoa_only.mat'));
-   ```
-
-`load_config(filepath)` merges the loaded struct with default values from `localization_config()`, so older .mat files remain valid when new fields are added.
+Sweeps vary one field by its dotted path: `run_sweep(cfg, 'noise_scale.rtt', [1 4 16], 20)`; `set_cfg_param` errors on a typo instead of silently sweeping nothing.
 
 ---
 
 ## Files
 
-- **localization_config.m** – Returns the full config struct (single source of truth).
-- **load_config.m** – Load config from .mat (`cfg` or `config` variable); optional merge with defaults.
-- **save_config.m** – Save config to .mat for reproducibility.
+- `localization_config.m` – the full config (single source of truth)
+- `validate_config.m` – checks shapes, ranges, enums
+- `anchor_layouts.m`, `set_anchor_layout.m` – named layouts (`model`, `triangle`, `four_corners`, `collinear`)
+- `sync_anchors_with_model.m` – reads the anchor `Constant` blocks from the loaded model
+- `set_cfg_param.m` – set a nested field from a dotted path
+- `load_config.m`, `save_config.m` – `.mat` persistence (recursive merge with defaults on load)

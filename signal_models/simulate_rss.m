@@ -1,42 +1,32 @@
-function rss_dB = simulate_rss(anchor_pos, agent_pos, config)
-% SIMULATE_RSS  Simulate RSS (received power in dBm) from agent to each anchor.
+function rss_dBm = simulate_rss(anchor_pos, agent_pos, cfg, tech)
+% SIMULATE_RSS  Received power [dBm] from one agent position to each anchor.
 %
-% rss_dB = simulate_rss(anchor_pos, agent_pos, config)
+% rss_dBm = simulate_rss(anchor_pos, agent_pos, cfg)
+% rss_dBm = simulate_rss(anchor_pos, agent_pos, cfg, tech)
 %
 % Inputs:
-%   anchor_pos - Nx2 array [x_i, y_i] of anchor positions [m]
-%   agent_pos  - 1x2 or 2x1 [x, y] agent position [m]
-%   config     - Struct with path_loss_ref_dB, path_loss_exponent,
-%                path_loss_ref_dist_m, path_loss_tx_dBm, noise_sigma_rss_dB
+%   anchor_pos - Kx2 anchor positions [m]
+%   agent_pos  - 1x2 or 2x1 [x y] [m]
+%   cfg        - config struct (cfg.channel.(tech), cfg.noise_scale.rss)
+%   tech       - 'wifi' (default) or 'ble'
 %
 % Output:
-%   rss_dB - Nx1 received power at each anchor [dBm]
+%   rss_dBm - Kx1 received power at each anchor [dBm]
 %
-% Assumptions:
-%   - Log-distance path loss: PL(d) = PL0 + 10*n*log10(d/d0).
-%   - Free-space-like propagation; no multipath or shadowing.
-%   - Additive Gaussian noise on RSS (dB) with std config.noise_sigma_rss_dB.
-%   - 2D geometry; all positions in same plane.
-%
-% Limitations:
-%   - Single slope (one path-loss exponent); real indoor channels may vary.
-%   - No correlation between anchor noises; no temporal correlation.
-%   - Distance clamped to d0 to avoid log(0).
+% Log-distance path loss PL(d) = PL0 + 10 n log10(d/d0) with additive Gaussian
+% noise (global RNG). Distance clamped to d0. For whole trajectories with
+% seeded noise use simulate_scenario.
 
+if nargin < 4 || isempty(tech), tech = 'wifi'; end
+ch = cfg.channel.(tech);
 agent_pos = agent_pos(:)';
-d0 = config.path_loss_ref_dist_m;
-PL0 = config.path_loss_ref_dB;
-n   = config.path_loss_exponent;
-Ptx = config.path_loss_tx_dBm;
-sigma_dB = config.noise_sigma_rss_dB;
 
-N = size(anchor_pos, 1);
-rss_dB = zeros(N, 1);
-
-for i = 1:N
-    d = sqrt((agent_pos(1) - anchor_pos(i,1))^2 + (agent_pos(2) - anchor_pos(i,2))^2);
-    d = max(d, d0);
-    PL = PL0 + 10 * n * log10(d / d0);
-    rss_dB(i) = Ptx - PL + sigma_dB * randn;
+K = size(anchor_pos, 1);
+rss_dBm = zeros(K, 1);
+for i = 1:K
+    d = hypot(agent_pos(1) - anchor_pos(i, 1), agent_pos(2) - anchor_pos(i, 2));
+    d = max(d, ch.d0_m);
+    PL = ch.PL0_dB + 10 * ch.n * log10(d / ch.d0_m);
+    rss_dBm(i) = ch.Ptx_dBm - PL + cfg.noise_scale.rss * ch.rss_std_dB * randn;
 end
 end
