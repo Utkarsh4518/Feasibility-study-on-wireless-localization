@@ -62,24 +62,24 @@ simulate_scenario (same channel in MATLAB,           |
 | EKF | Each RTT/RSS range and AoA bearing is a scalar measurement with its own variance and innovation gate. Uses the raw geometry and the motion across steps. |
 | Error bound | Single-snapshot Cramér-Rao bound from the Fisher information of all enabled links. Static estimators cannot beat it on average; the EKF can because it also uses motion. |
 
-The estimator covariances are statistically consistent: the mean normalised estimation error squared (ideal 2 for a 2-D position) is 1.9 to 2.3 for RSS, AoA, RTT, fusion and the EKF, and 1.2 for the RSS Kalman filter, which is slightly conservative. Machine learning is not part of the pipeline (`ml/` is a placeholder).
+The estimator covariances are statistically consistent: the mean normalised estimation error squared (ideal 2 for a 2-D position) is 1.9 to 2.3 for RSS, AoA, RTT, fusion and the EKF, and 1.2 for the RSS Kalman filter, which is slightly conservative. Machine learning is not part of the pipeline.
 
 ## How to run
 
-Requirements: MATLAB R2021a or later (the model was saved in R2023a). Simulink is needed only for `run_experiment`. No other toolboxes.
+Requirements: MATLAB R2021a or later (the model was saved in R2023a). Simulink is needed only for `run_experiment`. No other toolboxes. In MATLAB, set the current folder to `matlab/`; results are written to `results/` at the repository root.
 
-| Goal | Command, from the repo root |
+| Goal | Command, from the `matlab/` folder |
 |---|---|
 | Full pipeline with the Simulink model | `run_experiment` |
 | Same analysis without Simulink, any anchor layout | `run_simulated_experiment` |
-| Many noise realisations with CI, CDF and box plot | `run_monte_carlo(localization_config(), 100, 'OutDir', 'results/mc')` |
-| Sensitivity sweep | `run_sweep(cfg, 'noise_scale.aoa', [0.5 1 2 4], 20, 'OutDir', 'results/sweeps')` |
+| Many noise realisations with CI, CDF and box plot | `run_monte_carlo(localization_config(), 100, 'OutDir', '../results/mc')` |
+| Sensitivity sweep | `run_sweep(cfg, 'noise_scale.aoa', [0.5 1 2 4], 20, 'OutDir', '../results/sweeps')` |
 | Anchor layout comparison | `run_sweep(cfg, 'anchor_layout', {'model','triangle','four_corners','collinear'}, 20)` |
-| Re-analyse a saved run | `reanalyze_run('results/<folder>', cfg)` |
+| Re-analyse a saved run | `reanalyze_run('../results/<folder>', cfg)` |
 | Does `rng()` make the Simulink noise repeatable? | `check_reproducibility` |
 | Unit tests | `runtests('tests')` |
 
-Experiments are changed through `configs/localization_config.m` only (see `configs/README.md`). `run_simulated_experiment` and `run_monte_carlo` use their own `RandStream` seeded from `cfg.random_seed`, so they are exactly reproducible. Whether `rng()` also seeds the Simulink noise depends on the MATLAB release.
+Experiments are changed through `matlab/configs/localization_config.m` only (see `matlab/configs/README.md`). `run_simulated_experiment` and `run_monte_carlo` use their own `RandStream` seeded from `cfg.random_seed`, so they are exactly reproducible. Whether `rng()` also seeds the Simulink noise depends on the MATLAB release.
 
 Each run writes `results/<timestamp>/` with `metrics.csv`, `evaluation_timeseries.csv`, `cfg.json`, `meas.mat` and figures (see `docs/RESULTS_FORMAT.md`).
 
@@ -105,14 +105,20 @@ python -m pytest python/tests -q
 
 ## Project layout
 
-- `run_experiment.m`, `run_simulated_experiment.m`, `run_monte_carlo.m`, `run_sweep.m`, `reanalyze_run.m`, `check_reproducibility.m`: entry points
-- `analyze_run.m`, `report_run.m`: analysis and reporting
-- `configs/`: config, validation, anchor layouts, anchor sync with the model
-- `signal_models/`: scenario simulator, trajectory, link conversions, Simulink extraction
-- `estimators/`: range and bearing solvers
-- `filters/`: smoothing, Kalman, EKF, fusion
-- `evaluation/`: statistics, error bound, plots, report writer
-- `tests/`: `matlab.unittest` suite
-- `python/`: reference implementation, dashboard, tests
-- `LocalizationRSSandsub/`: the Simulink model
-- `docs/`: Simulink model guide, results format
+```
+README.md
+matlab/                  all MATLAB code
+  run_experiment.m  run_simulated_experiment.m  run_monte_carlo.m
+  run_sweep.m  reanalyze_run.m  check_reproducibility.m      entry points
+  analyze_run.m  report_run.m  setup_paths.m                 analysis, reporting, path setup
+  configs/               config, validation, anchor layouts, anchor sync with the model
+  signal_models/         scenario simulator, trajectory, link conversions, Simulink extraction
+  estimators/            range and bearing solvers
+  filters/               smoothing, Kalman, EKF, fusion
+  evaluation/            statistics, error bound, plots, report writer
+  tests/                 matlab.unittest suite
+simulink/                the Simulink model and its helper script
+python/                  reference implementation, dashboard, tests
+docs/                    Simulink model guide, results format
+.github/workflows/       CI
+```

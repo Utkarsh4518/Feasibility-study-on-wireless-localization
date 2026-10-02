@@ -42,7 +42,7 @@ Run **refactor_simulink_model.m** to apply meaningful block names and annotation
 - **Outports / logged signals** (used by `run_experiment` and config):
   - **true_x, true_y**: ground truth agent position.
   - **est_x, est_y**: RSS/AoA-derived position from the model.
-  - **RSS:** e.g. estRSS1-3, estmRSS4-6 (names in `configs/localization_config.m`: `rss_names`).
+  - **RSS:** e.g. estRSS1-3, estmRSS4-6 (names in `matlab/configs/localization_config.m`: `rss_names`).
   - **AoA:** AoA1_RX_wifi, AoA2_RX_wifi, AoA3_RX_wifi (`aoa_names`).
   - **RTT:** RTT_WIFI1-3, RTT_BLE1-3 (`rtt_names`).
 
@@ -66,7 +66,7 @@ These are optional; the script places them so the diagram stays readable.
 
 From MATLAB:
 
-1. `cd` to `LocalizationRSSandsub` (or add it to the path so the model is found).
+1. `cd` to `simulink/` (or run `setup_paths` from `matlab/`, which adds it to the path).
 2. Run: `refactor_simulink_model`
 3. Save: `save_system('Localization_Ependorfv2')`
 

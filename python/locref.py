@@ -1,7 +1,7 @@
 """
 Reference implementation of the localization pipeline (numpy only).
 
-Mirrors the MATLAB code in this repository (signal_models/, estimators/, filters/,
+Mirrors the MATLAB code in this repository (matlab/signal_models, estimators, filters,
 evaluation/) so the algorithms can be checked, benchmarked and plotted without
 MATLAB/Simulink. Random numbers differ from MATLAB (different generators), so
 results agree statistically, not sample-for-sample.
@@ -40,7 +40,7 @@ ANCHOR_LAYOUTS = {
 
 
 def default_cfg() -> dict:
-    """Same defaults as configs/localization_config.m."""
+    """Same defaults as matlab/configs/localization_config.m."""
     return {
         "random_seed": 42,
         "anchor_layout": "model",

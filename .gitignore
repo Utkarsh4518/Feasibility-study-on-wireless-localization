@@ -4,7 +4,7 @@
 *.autosave
 
 # Simulink code generation / cache (regeneratable)
-LocalizationRSSandsub/slprj/
+simulink/slprj/
 
 # Evaluation outputs (timestamped; reproducible by re-running with same config/seed)
 results/

@@ -16,7 +16,7 @@ function cfg = localization_config()
 % SIMULATION / MODEL
 % =========================================================================
 cfg.modelName = 'Localization_Ependorfv2';
-cfg.simulinkDir = 'LocalizationRSSandsub';
+cfg.simulinkDir = 'simulink';
 % Fixed random seed for reproducible runs (set [] to leave RNG unchanged)
 cfg.random_seed = 42;
 % Save evaluation report to results/<timestamp>/ (report_run)

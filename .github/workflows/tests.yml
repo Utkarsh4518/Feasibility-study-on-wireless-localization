@@ -29,5 +29,5 @@ jobs:
           release: R2023a
       - uses: matlab-actions/run-tests@v2
         with:
-          select-by-folder: tests
-          source-folder: .
+          select-by-folder: matlab/tests
+          source-folder: matlab
