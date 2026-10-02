@@ -1,37 +1,45 @@
-function [out, AoA_deg] = applyPathLossWithAOA(tx_signal, agent_x, agent_y, anchor_x, anchor_y, cfg)
+function [out, AoA_deg] = applyPathLossWithAOA(tx_signal, agent_x, agent_y, anchor_x, anchor_y, cfg, tech)
 % APPLYPATHLOSSWITHAOA  Simulate path loss and angle-of-arrival for one link.
 %
 % [out, AoA_deg] = applyPathLossWithAOA(tx_signal, agent_x, agent_y, anchor_x, anchor_y)
-% [out, AoA_deg] = applyPathLossWithAOA(tx_signal, agent_x, agent_y, anchor_x, anchor_y, cfg)
+% [out, AoA_deg] = applyPathLossWithAOA(..., cfg)
+% [out, AoA_deg] = applyPathLossWithAOA(..., cfg, tech)
 %
 % Inputs:
-%   tx_signal - Transmitted signal (scalar or vector)
+%   tx_signal        - Transmitted signal (scalar or vector)
 %   agent_x, agent_y - Agent position [m]
 %   anchor_x, anchor_y - Anchor position [m]
-%   cfg       - (optional) Config struct. If omitted, uses defaults below.
+%   cfg  - (optional) config struct; uses cfg.channel.(tech) and cfg.noise_scale.aoa
+%   tech - (optional) 'wifi' (default) or 'ble'
 %
 % Outputs:
 %   out     - Attenuated signal (same size as tx_signal)
 %   AoA_deg - Angle of arrival [deg], 0--360, with additive Gaussian noise
 %
+% Without cfg the WiFi parameters of the Simulink chart
+% applyPathLossWithAOA_WiFi are used: PL0 = 30 dB, n = 2.2, AoA noise 2 deg.
+%
 % Assumptions:
 %   - Log-distance path loss; single slope; no multipath.
-%   - AoA = atan2(dy,dx) plus Gaussian angle noise (config or default 2 deg std).
+%   - AoA = atan2(dy,dx) plus Gaussian angle noise (global RNG).
 %
 % Limitations:
-%   - One link only. For multiple anchors use simulate_rss and/or loop this.
-%   - Defaults: path_loss_ref_dB=30, path_loss_exponent=2.7, noise_aoa_std_deg=2.
+%   - One link only. For a whole scenario use simulate_scenario.
 
+if nargin < 7 || isempty(tech)
+    tech = 'wifi';
+end
 if nargin < 6 || isempty(cfg)
     d0 = 1;
     PL0 = 30;
-    n   = 2.7;
+    n   = 2.2;
     aoa_noise_std_deg = 2;
 else
-    d0 = cfg.path_loss_ref_dist_m;
-    PL0 = cfg.path_loss_ref_dB;
-    n   = cfg.path_loss_exponent;
-    aoa_noise_std_deg = cfg.noise_aoa_std_deg;
+    ch = cfg.channel.(tech);
+    d0 = ch.d0_m;
+    PL0 = ch.PL0_dB;
+    n   = ch.n;
+    aoa_noise_std_deg = cfg.noise_scale.aoa * ch.aoa_std_deg;
 end
 
 d = sqrt((agent_x - anchor_x)^2 + (agent_y - anchor_y)^2);

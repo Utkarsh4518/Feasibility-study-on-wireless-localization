@@ -1,43 +1,30 @@
-function compute_metrics(results, cfg)
-% COMPUTE_METRICS  Print localization accuracy sections for enabled modalities only.
+function stats = compute_metrics(res, cfg)
+% COMPUTE_METRICS  Print a localization accuracy table and return the stats.
 %
-% compute_metrics(results, cfg)
+% stats = compute_metrics(res, cfg)
 %
 % Inputs:
-%   results - Struct with errors_smooth, errors_kf, errors_aoa, errors_rtt, errors_fused
-%             (each instantaneous Euclidean L2 error in [m]). Also enable_* / haveRTT.
-%   cfg     - Config struct with enable_rss, enable_aoa, enable_rtt
+%   res - result struct from analyze_run (fields err, info)
+%   cfg - config struct (target_error_m)
 %
-% Printed stats are aggregated over time: mean, median, max, min, std of the instantaneous errors.
+% Output:
+%   stats - struct from compute_error_stats (one entry per method that has data)
+%
+% All numbers are aggregated over time from the instantaneous Euclidean error
+% [m]. Methods that are disabled or produced no estimate are not listed.
 
-if nargin < 2 || isempty(cfg)
-    cfg = struct('enable_rss', true, 'enable_aoa', true, 'enable_rtt', true);
-end
+stats = compute_error_stats(res.err, cfg);
+info = res.info;
 
-if cfg.enable_rss
-    print_accuracy_section('Smoothed RSS', results.errors_smooth);
-    print_accuracy_section('Kalman Filtered RSS', results.errors_kf);
+fprintf('\nLocalization accuracy (simulation), target %.2g m\n', cfg.target_error_m);
+fprintf('%-26s %7s %7s %7s %7s %7s %9s\n', 'Method', 'Mean', 'Median', 'P90', 'Max', 'RMSE', '<=target');
+for k = 1:numel(info.keys)
+    key = info.keys{k};
+    if ~isfield(stats, key), continue; end
+    s = stats.(key);
+    fprintf('%-26s %6.3f  %6.3f  %6.3f  %6.3f  %6.3f  %7.1f %%\n', ...
+        info.names{k}, s.mean_err, s.median_err, s.p90_err, s.max_err, s.rmse_err, ...
+        100 * s.frac_under_target);
 end
-if cfg.enable_aoa
-    print_accuracy_section('AoA WLS', results.errors_aoa);
-end
-if cfg.enable_rtt && results.haveRTT
-    print_accuracy_section('RTT Trilateration', results.errors_rtt);
-end
-print_accuracy_section('Fusion', results.errors_fused);
-end
-
-function print_accuracy_section(label, errors)
-e = errors(isfinite(errors(:)));
-if isempty(e)
-    fprintf('\n--- Localization Accuracy (%s) ---\n', label);
-    fprintf('(no valid samples)\n');
-    return;
-end
-fprintf('\n--- Localization Accuracy (%s) ---\n', label);
-fprintf('Mean Error      : %.2f m\n', mean(e));
-fprintf('Median Error    : %.2f m\n', median(e));
-fprintf('Max Error       : %.2f m\n', max(e));
-fprintf('Min Error       : %.2f m\n', min(e));
-fprintf('Std Deviation   : %.2f m\n', std(e, 'omitnan'));
+fprintf('(errors in metres)\n');
 end

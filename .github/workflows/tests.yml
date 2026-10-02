@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r python/requirements.txt pytest
+      - run: pytest python/tests -q
+
+  matlab:
+    # Runs the unit tests (no Simulink needed: they use simulate_scenario).
+    # MATLAB on GitHub-hosted runners is free for public repositories; for a
+    # private repository it needs a MathWorks batch licensing token
+    # (see https://github.com/matlab-actions/setup-matlab). Remove this job if
+    # you do not want it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2023a
+      - uses: matlab-actions/run-tests@v2
+        with:
+          select-by-folder: tests
+          source-folder: .
