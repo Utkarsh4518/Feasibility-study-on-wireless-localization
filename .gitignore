@@ -16,3 +16,8 @@ Thumbs.db
 # IDE
 .vscode/
 *.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/

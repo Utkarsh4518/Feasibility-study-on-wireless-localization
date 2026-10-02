@@ -1,4 +1,4 @@
-# Simulink Model Guide — 5-Minute Overview
+# Simulink Model Guide: 5-Minute Overview
 
 **Model:** `Localization_Ependorfv2.slx`  
 **Purpose:** Simulate indoor wireless localization: anchors and a moving agent, with RSS, AoA, and RTT signals fed into position estimation (simulation only).
@@ -40,13 +40,13 @@ Run **refactor_simulink_model.m** to apply meaningful block names and annotation
 ## 3. Key outputs (for MATLAB)
 
 - **Outports / logged signals** (used by `run_experiment` and config):
-  - **true_x, true_y** — ground truth agent position.
-  - **est_x, est_y** — RSS/AoA-derived position from the model.
-  - **RSS:** e.g. estRSS1–3, estmRSS4–6 (names in `configs/localization_config.m`: `rss_names`).
+  - **true_x, true_y**: ground truth agent position.
+  - **est_x, est_y**: RSS/AoA-derived position from the model.
+  - **RSS:** e.g. estRSS1-3, estmRSS4-6 (names in `configs/localization_config.m`: `rss_names`).
   - **AoA:** AoA1_RX_wifi, AoA2_RX_wifi, AoA3_RX_wifi (`aoa_names`).
-  - **RTT:** RTT_WIFI1–3, RTT_BLE1–3 (`rtt_names`).
+  - **RTT:** RTT_WIFI1-3, RTT_BLE1-3 (`rtt_names`).
 
-Config signal names must match the model’s outport/logged names.
+Config signal names must match the model's outport/logged names.
 
 ---
 
@@ -54,9 +54,9 @@ Config signal names must match the model’s outport/logged names.
 
 The refactor script adds short annotations on the canvas, for example:
 
-- **Top level:** “Anchors → Channel_And_Ranging (path loss, AoA, RTT) → Agent (estimation). Outputs: true_x/y, est_x/y, RSS/AoA/RTT to workspace.”
-- **Inside Channel_And_Ranging:** “Per-link: TX + agent pos → path loss & noise → RSS, AoA, RTT.”
-- **Inside Agent:** “RSS/AoA/RTT in → RSS estimators + LocalizationSolver → est_x, est_y; Agent_positioning → true_x, true_y.”
+- **Top level:** "Anchors → Channel_And_Ranging (path loss, AoA, RTT) → Agent (estimation). Outputs: true_x/y, est_x/y, RSS/AoA/RTT to workspace."
+- **Inside Channel_And_Ranging:** "Per-link: TX + agent pos → path loss & noise → RSS, AoA, RTT."
+- **Inside Agent:** "RSS/AoA/RTT in → RSS estimators + LocalizationSolver → est_x, est_y; Agent_positioning → true_x, true_y."
 
 These are optional; the script places them so the diagram stays readable.
 
@@ -101,9 +101,9 @@ These are `cfg.channel.wifi` / `cfg.channel.ble`.
 
 **`LocalizationSolver` chart** (produces `est_x`, `est_y`): minimises with `fminsearch`
 `1.0 * sum (d_model - d_rss)^2 + 0.5 * sum (angle error in degrees)^2 + 0.5 * sum (d_model - d_rtt)^2`
-over all six links (WiFi + BLE, anchors duplicated). So `est_x/est_y` is a **combined RSS + AoA + RTT estimate**, not an RSS‑only one. RSS is converted to distance with one fixed model, `PL0 = 44 dB`, `n = 1.9`, for every link, which does not match the channel (WiFi 30/2.2, BLE 50/3.0), so the RSS ranges are biased. The previous solution is used as the initial guess of the next step (`persistent`).
+over all six links (WiFi + BLE, anchors duplicated). So `est_x/est_y` is a **combined RSS + AoA + RTT estimate**, not an RSS-only one. RSS is converted to distance with one fixed model, `PL0 = 44 dB`, `n = 1.9`, for every link, which does not match the channel (WiFi 30/2.2, BLE 50/3.0), so the RSS ranges are biased. The previous solution is used as the initial guess of the next step (`persistent`).
 
-**Solver:** variable‑step, stop time 10 s.
+**Solver:** variable-step, stop time 10 s.
 
 **Logging:** `cfg.aoa_names` / `cfg.rtt_names` match the output port names of the channel subsystem; the exact point at which each signal is logged was not verified from the XML.
 

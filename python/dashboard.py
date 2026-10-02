@@ -157,7 +157,7 @@ def fig_bound_map(cfg: dict, ts: Optional[pd.DataFrame]) -> go.Figure:
     fig.update_yaxes(title="y [m]", range=[ys[0], ys[-1]])
     note = (f"white contour = {t:g} m target" if has_contour
             else f"below the {t:g} m target everywhere (max {np.nanmax(Z):.2f} m)")
-    return _layout(fig, f"Best achievable accuracy – layout “{cfg.get('anchor_layout', '')}”, {note}",
+    return _layout(fig, f"Best achievable accuracy, layout '{cfg.get('anchor_layout', '')}', {note}",
                    height=560)
 
 
@@ -260,7 +260,7 @@ def build(folder: Path, offline: bool = False) -> Path:
             if r.empty:
                 continue
             r = r.iloc[0]
-            kp.append(f"<div class='kpi'><b>{r['mean_m']:.2f} m</b><span>{NAMES[k]} – mean error"
+            kp.append(f"<div class='kpi'><b>{r['mean_m']:.2f} m</b><span>{NAMES[k]}: mean error"
                       f"<br>{100 * r['frac_under_target']:.0f}% of samples ≤ {target:g} m</span></div>")
         parts.append(f"<div class='kpis'>{''.join(kp)}</div>")
 
@@ -294,7 +294,7 @@ def build(folder: Path, offline: bool = False) -> Path:
     html = (f"<!doctype html><html lang='en'><head><meta charset='utf-8'>"
             f"<meta name='viewport' content='width=device-width,initial-scale=1'>"
             f"<title>Localization Results</title><style>{CSS}</style></head><body><main>"
-            f"<h1>Indoor localization – results</h1>"
+            f"<h1>Indoor localization: results</h1>"
             f"<p class='sub'>Simulation only · {folder.name} · anchors: {cfg.get('anchor_layout', '?')}</p>"
             + "".join(parts) + "</main></body></html>")
     out = folder / "dashboard.html"

@@ -16,7 +16,7 @@ function [kx, ky, cov] = kalman_filter_cv(zx, zy, dts, cfg, R_seq)
 %
 % Notes:
 %   - The measurement noise is an input and is never derived from ground truth
-%     (the earlier kalman_filter_rss estimated R from true - estimate).
+%     (an earlier version estimated R from true - estimate).
 %   - Mahalanobis gating (kalman_update). After cfg.kf_max_rejects consecutive
 %     rejections the filter re-initialises on the current measurement, so a
 %     bad stretch cannot make it reject every later measurement forever.

@@ -1,6 +1,6 @@
 # Results folders
 
-Every run writes a timestamped folder under `results/` (git‑ignored; archive specific runs deliberately). Names: `results/20260101_120000` (Simulink), `..._sim` (simulated), plus any folder you pass as `'OutDir'`.
+Every run writes a timestamped folder under `results/` (git-ignored; archive specific runs deliberately). Names: `results/20260101_120000` (Simulink), `..._sim` (simulated), plus any folder you pass as `'OutDir'`.
 
 ## Single run (`run_experiment`, `run_simulated_experiment`)
 

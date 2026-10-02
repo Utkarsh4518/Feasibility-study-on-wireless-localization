@@ -71,18 +71,5 @@ classdef TestEstimators < matlab.unittest.TestCase
             est = estimate_position_rss(cfg.anchor_pos, meas.rss, meas.rss.val(k, :), cfg);
             tc.verifyEqual(est, [meas.true_x(k), meas.true_y(k)], 'AbsTol', 1e-4);
         end
-
-        function deprecatedWrappersStillWork(tc)
-            A = [0 0; 0 5; 5 0];
-            p = [2 1.5];
-            r = hypot(p(1) - A(:, 1), p(2) - A(:, 2));
-            [x, y] = estimate_position_ls(r, A);
-            tc.verifyEqual([x y], p, 'AbsTol', 1e-6);
-            [x, y] = trilaterate(A, r);
-            tc.verifyEqual([x y], p, 'AbsTol', 1e-6);
-            th = atan2(p(2) - A(:, 2), p(1) - A(:, 1));
-            [x, y] = aoa_localization_wls(A, th);
-            tc.verifyEqual([x y], p, 'AbsTol', 1e-9);
-        end
     end
 end

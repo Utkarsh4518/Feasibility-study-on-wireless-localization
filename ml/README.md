@@ -1,4 +1,4 @@
-# ML (Machine Learning) module — future work only
+# ML (Machine Learning) module: future work only
 
 **No machine learning is implemented in this repository.** This folder is reserved for possible future work only.
 
