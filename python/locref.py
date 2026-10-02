@@ -64,6 +64,7 @@ def default_cfg() -> dict:
         },
         "smooth_win": 5,
         "smooth_causal": True,
+        "kf_input": "raw",        # 'raw' | 'smoothed': position series the Kalman filter is fed
         "kf_sigma_a": 0.5,
         "kf_R_floor_m2": 0.05,
         "kf_R_fixed_m2": 1.0,     # used when the RSS estimator provides no covariance
@@ -77,6 +78,36 @@ def default_cfg() -> dict:
         "fusion_weight_kf": 0.7,
         "target_error_m": 0.5,
     }
+
+
+def cfg_from_json(d: dict) -> dict:
+    """Build a locref cfg from a cfg.json written by the MATLAB code (missing keys = defaults)."""
+    cfg = default_cfg()
+
+    def merge(dst, src):
+        for k, v in src.items():
+            if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                merge(dst[k], v)
+            else:
+                dst[k] = v
+
+    merge(cfg, d)
+    cfg["anchor_pos"] = np.array(cfg["anchor_pos"], dtype=float).reshape(-1, 2)
+    cfg["trajectory"]["waypoints"] = np.array(cfg["trajectory"]["waypoints"], dtype=float).reshape(-1, 2)
+    return cfg
+
+
+def cfg_to_jsonable(cfg: dict) -> dict:
+    """Plain-Python copy of cfg (numpy arrays -> lists) suitable for json.dump."""
+    def conv(v):
+        if isinstance(v, dict):
+            return {k: conv(x) for k, x in v.items()}
+        if isinstance(v, np.ndarray):
+            return v.tolist()
+        if isinstance(v, (np.floating, np.integer)):
+            return v.item()
+        return v
+    return conv(cfg)
 
 
 def set_layout(cfg: dict, name: str) -> dict:
@@ -452,7 +483,8 @@ def fisher_information(cfg: dict, px: float, py: float, techs_rr=("wifi", "ble")
             if cfg["enable_rtt"]:
                 J += np.outer(u, u) / rtt_range_sigma(ch, ns["rtt"]) ** 2
             if cfg["enable_rss"]:
-                J += np.outer(u, u) / max(rss_range_sigma(d, ch, ns["rss"]), 1e-9) ** 2
+                # the channel clamps d at d0, so RSS carries no extra information closer than d0
+                J += np.outer(u, u) / max(rss_range_sigma(max(d, ch["d0_m"]), ch, ns["rss"]), 1e-9) ** 2
         if cfg["enable_aoa"]:
             for tech in techs_aoa:
                 ch = cfg["channel"][tech]
@@ -507,7 +539,8 @@ def analyze_run(meas: dict, cfg: dict) -> dict:
         for k in range(N):
             if not np.all(np.isfinite(R_seq[k])):
                 R_seq[k] = np.eye(2) * cfg["kf_R_fixed_m2"]
-        kx, ky, kcov = kalman_filter_cv(sx, sy, dt, cfg, R_seq)
+        zx, zy = (rx, ry) if cfg["kf_input"] == "raw" else (sx, sy)
+        kx, ky, kcov = kalman_filter_cv(zx, zy, dt, cfg, R_seq)
         est["rss_kf"].update(x=kx, y=ky, cov=kcov)
 
     if cfg["enable_aoa"]:

@@ -79,3 +79,35 @@ The script:
 - Does **not** change connections or algorithm logic.
 
 If you prefer to keep the original block names, you can still use this guide and only add annotations by editing the script to skip the rename section.
+
+---
+
+## 6. Facts read from the model file (`Localization_Ependorfv2.slx`)
+
+The `.slx` is a zip of XML; the values below were read from it directly (not assumed).
+
+**Anchors** (`Constant` blocks `Anchor k_X` / `Anchor k_Y`): Anchor 1 = (0, 0) m, Anchor 2 = (0, 5) m, Anchor 3 = (5, 0) m. `cfg.anchor_pos` defaults to these, and `run_experiment` re-reads them from the loaded model (`sync_anchors_with_model`). Earlier versions of the config listed (1,3), (5,7), (10,11), which made the MATLAB AoA/RTT results wrong.
+
+**Channel charts** (`applyPathLossWithAOA_WiFi` / `_BLE`, one per link; distance clamped at 1 m, `Ptx = 0 dBm`):
+
+| | PL0 [dB] | n | AoA noise | RTT noise | RTT |
+|---|---|---|---|---|---|
+| WiFi | 30 | 2.2 | 2° | 1 ns | `2d/c + noise` |
+| BLE | 50 | 3.0 | 5° | 5 ns | `2d/c + noise` |
+
+These are `cfg.channel.wifi` / `cfg.channel.ble`.
+
+**Estimator charts** (`EstimateRSSAOARTT`, six copies inside `Agent`) add a further 1.5 dB RSS noise, 2° AoA noise and 2 ns RTT noise to their inputs.
+
+**`LocalizationSolver` chart** (produces `est_x`, `est_y`): minimises with `fminsearch`
+`1.0 * sum (d_model - d_rss)^2 + 0.5 * sum (angle error in degrees)^2 + 0.5 * sum (d_model - d_rtt)^2`
+over all six links (WiFi + BLE, anchors duplicated). So `est_x/est_y` is a **combined RSS + AoA + RTT estimate**, not an RSS‑only one. RSS is converted to distance with one fixed model, `PL0 = 44 dB`, `n = 1.9`, for every link, which does not match the channel (WiFi 30/2.2, BLE 50/3.0), so the RSS ranges are biased. The previous solution is used as the initial guess of the next step (`persistent`).
+
+**Solver:** variable‑step, stop time 10 s.
+
+**Logging:** `cfg.aoa_names` / `cfg.rtt_names` match the output port names of the channel subsystem; the exact point at which each signal is logged was not verified from the XML.
+
+### Seeding
+
+The noise comes from `randn` in the MATLAB Function blocks. Whether `rng(seed)` in MATLAB makes it repeatable depends on the release; run `check_reproducibility` once. For repeatable experiments use `run_simulated_experiment` / `run_monte_carlo`, which model the same channel in MATLAB with their own seeded `RandStream`.
+
