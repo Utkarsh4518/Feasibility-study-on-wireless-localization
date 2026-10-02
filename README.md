@@ -124,7 +124,7 @@ Each run writes `results/<timestamp>/`: `metrics.csv`, `evaluation_timeseries.cs
 - **Simulation only.** No hardware, no measured data, no calibration. Channel parameters are taken from the Simulink charts, not from measurements.
 - **Optimistic noise.** See the RTT note above; also no multipath, NLOS, antenna patterns or clock drift.
 - **Trajectory.** The MATLAB simulator drives a fixed triangular path inside the anchor hull at 0.5 m/s; the Simulink agent path is the model's own and was not changed.
-- **MATLAB code status.** The MATLAB code parses and lints cleanly (MISS_HIT), and its algorithms are verified by the Python reference (19 tests), but it was written without access to MATLAB, so run `runtests('tests')` first.
+- **MATLAB code status.** The numeric core (simulator, estimators, filters, EKF, fusion, error bound, Monte Carlo) was executed in GNU Octave: 36 test assertions pass and a 100‑run Monte Carlo reproduces the Python table within the confidence intervals. Not yet executed anywhere: plotting/report writing (`table`, `tiledlayout`, `exportgraphics`) and the Simulink path. Run `runtests('tests')` in MATLAB to cover those.
 - **Simulink est_x/est_y** already contains AoA and RTT information, so fusion results on Simulink data are optimistic; use the simulated experiment for a fair comparison.
 - **ML not integrated.**
 

@@ -29,11 +29,13 @@ classdef TestEstimators < matlab.unittest.TestCase
         end
 
         function rangesIgnoreNaN(tc)
-            A = [0 0; 0 5; 5 0];
+            % One of six WiFi+BLE links missing: all three anchors still observed.
+            % (With only two ranges left the position is ambiguous: two mirror solutions.)
+            A = [0 0; 0 5; 5 0; 0 0; 0 5; 5 0];
             p = [2 1.5];
             r = hypot(p(1) - A(:, 1), p(2) - A(:, 2));
             r(2) = NaN;
-            est = estimate_position_ranges(A, r, 0.1 * ones(3, 1));
+            est = estimate_position_ranges(A, r, 0.1 * ones(6, 1));
             tc.verifyEqual(est, p, 'AbsTol', 1e-6);
         end
 
